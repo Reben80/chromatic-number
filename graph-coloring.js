@@ -802,7 +802,7 @@ function showNotification(message, type = 'success') {
                 messageContainer.removeChild(notification);
             }
         }, 0);
-    }, 500000); // Increased to 5000ms (5 seconds)
+    }, 1000000); // Increased to 5000ms (5 seconds)
 }
 
 // Comment out or remove the function definition
