@@ -112,6 +112,7 @@ h1 {
     width: 100%;
     max-width: 800px;
     margin-top: 20px;
+    position: relative;
 }
 
 #controls {
@@ -152,8 +153,15 @@ h1 {
 }
 
 #colorCounter {
-    margin-bottom: 10px;
-    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #555;
+    z-index: 1;
 }
 
 #gameCanvas {
@@ -165,6 +173,9 @@ h1 {
     max-width: 800px;
     height: 500px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: relative;
+    display: block;
+    margin: 0 auto;
 }
 
 #colorPalette {
@@ -250,7 +261,8 @@ canvas {
 }
 
 .challenge-button {
-    padding: 6px 12px;
+    padding: 8px 15px;
+    margin: 4px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     background: #f8f9fa;
@@ -259,13 +271,14 @@ canvas {
     transition: all 0.2s ease;
     min-width: 85px;
     color: #555;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
 }
 
 .challenge-button:hover {
     background: #fff;
     transform: translateY(-1px);
-    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .challenge-button.active {
@@ -273,6 +286,29 @@ canvas {
     color: white;
     border-color: #357abd;
     box-shadow: 0 2px 4px rgba(74,144,226,0.2);
+}
+
+.challenge-button.completed {
+    background: #4CAF50;
+    color: white;
+    border-color: #45a049;
+}
+
+.challenge-button.completed:hover {
+    background: #43A047;
+}
+
+.challenge-button.completed::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    font-size: 12px;
+}
+
+.challenge-button.completed.active {
+    background: #2E7D32;
 }
 
 /* Sketch mode button styles */
@@ -537,4 +573,94 @@ canvas {
     justify-content: center;
     gap: 15px;
     margin-bottom: 15px;
+}
+
+.challenge-button.active[innerHTML="Delete"] {
+    background: #f44336;  /* Red */
+    color: white;
+    border-color: #d32f2f;
+}
+
+.game-message {
+    position: absolute;
+    top: 250px; /* Half of canvas height */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    text-align: center;
+    animation: fadeIn 0.3s ease-out;
+    width: fit-content;
+    pointer-events: none; /* Allows clicking through the message */
+}
+
+.message-perfect {
+    background: rgba(76, 175, 80, 0.95);
+    color: white;
+    border: 2px solid #45a049;
+}
+
+.message-exceptional {
+    background: rgba(255, 215, 0, 0.95);
+    color: white;
+    border: 2px solid #FFD700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.message-success {
+    background: rgba(33, 150, 243, 0.95);
+    color: white;
+    border: 2px solid #1e88e5;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.game-message.fade-out {
+    opacity: 0;
+    transition: opacity 1s ease-out;
+}
+.click-to-close {
+    font-size: 12px;
+    margin-top: 10px;
+    opacity: 0.8;
+}
+
+.game-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(76, 175, 80, 0.95);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.game-message.fade-out {
+    opacity: 0;
+}
+
+.game-message h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.game-message p {
+    margin: 0;
+    font-size: 16px;
 }

@@ -200,58 +200,46 @@ function drawGraph() {
     });
 }
 
+// Add this to track completed challenges
+let completedChallenges = new Set();
+
+// Update showChallengeButtons function
 function showChallengeButtons() {
-    const challengeContainer = document.createElement('div');
-    challengeContainer.id = 'challenge-container';
+    const container = document.createElement('div');
+    container.id = 'challenge-container';
     
-    const descriptions = [
-        "Triangle-Based Graph ",
-        "Pentagon with Inner Star ",
-        "Medium Graph with Overlapping Edges",
-        "Simple Complete Graph ",
-        "Complex Graph ",
-        "Circular Graph ",
-        "Hexagonal Graph",
-        "Double Pentagon Graph"
-    ];
-    
-    // Create two rows container
     const rowsContainer = document.createElement('div');
     rowsContainer.className = 'challenge-rows';
     
-    const row1 = document.createElement('div');
-    const row2 = document.createElement('div');
-    row1.className = 'challenge-row';
-    row2.className = 'challenge-row';
-    
-    for (let i = 0; i < challenges.length; i++) {
-        const button = document.createElement('button');
-        button.className = 'challenge-button';
-        button.innerHTML = `Challenge ${i + 1}<br><span class="challenge-desc">${descriptions[i]}</span>`;
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.challenge-button').forEach(btn => 
-                btn.classList.remove('active'));
-            button.classList.add('active');
-            loadChallenge(i);
-        });
+    // Create 2 rows of 4 buttons each
+    for (let row = 0; row < 2; row++) {
+        const buttonRow = document.createElement('div');
+        buttonRow.className = 'challenge-row';
         
-        if (i < 4) {
-            row1.appendChild(button);
-        } else {
-            row2.appendChild(button);
+        for (let col = 0; col < 4; col++) {
+            const challengeIndex = row * 4 + col;
+            if (challengeIndex < challenges.length) {
+                const button = document.createElement('button');
+                button.className = 'challenge-button';
+                if (completedChallenges.has(challengeIndex)) {
+                    button.classList.add('completed');
+                }
+                button.innerHTML = `Challenge ${challengeIndex + 1}`;
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.challenge-button').forEach(btn => 
+                        btn.classList.remove('active'));
+                    button.classList.add('active');
+                    loadChallenge(challengeIndex);
+                });
+                buttonRow.appendChild(button);
+            }
         }
+        rowsContainer.appendChild(buttonRow);
     }
     
-    rowsContainer.appendChild(row1);
-    rowsContainer.appendChild(row2);
-    challengeContainer.appendChild(rowsContainer);
-    
-    const mainContent = document.getElementById('main-content');
-    const existingContainer = document.getElementById('challenge-container');
-    if (existingContainer) {
-        existingContainer.remove();
-    }
-    mainContent.insertBefore(challengeContainer, mainContent.firstChild);
+    container.appendChild(rowsContainer);
+    const controls = document.getElementById('controls');
+    controls.parentElement.insertBefore(container, controls);
 }
 
 function loadChallenge(index) {
@@ -313,12 +301,31 @@ function updateControlsVisibility(mode) {
     currentMode = mode;
     
     const numVerticesControl = document.querySelector('.control-group');
-    const sketchInstructions = document.getElementById('sketchInstructions');
+    const resetButton = document.getElementById('resetButton');
+    const resetColorsButton = document.createElement('button');
+    resetColorsButton.id = 'resetColorsButton';
+    resetColorsButton.innerHTML = 'Reset Colors';
+    resetColorsButton.className = 'control-button';
     
-    // Hide all mode-specific elements
-    numVerticesControl.style.display = 'none';
-    if (sketchInstructions) {
-        sketchInstructions.classList.add('hidden');
+    // Remove any existing reset colors button
+    const existingResetColors = document.getElementById('resetColorsButton');
+    if (existingResetColors) {
+        existingResetColors.remove();
+    }
+    
+    // Add reset colors functionality
+    resetColorsButton.addEventListener('click', () => {
+        vertices.forEach(vertex => vertex.color = null);
+        drawGraph();
+        updateColorCount();
+    });
+    
+    // Hide all controls first
+    if (numVerticesControl) {
+        numVerticesControl.style.display = 'none';
+    }
+    if (resetButton) {
+        resetButton.style.display = 'none';
     }
     
     // Remove any existing challenge/sketch containers
@@ -327,9 +334,15 @@ function updateControlsVisibility(mode) {
         existingContainer.remove();
     }
 
+    // Add reset colors button to controls
+    const controls = document.getElementById('controls');
+    controls.appendChild(resetColorsButton);
+
     switch(mode) {
         case 'random':
-            numVerticesControl.style.display = 'block';
+            if (numVerticesControl) {
+                numVerticesControl.style.display = 'block';
+            }
             generateRandomGraph(parseInt(numVerticesInput.value, 10));
             break;
             
@@ -368,96 +381,195 @@ colors.forEach(color => {
     colorPalette.appendChild(colorButton);
 });
 
-// Vertex coloring
-canvas.addEventListener('click', (event) => {
+function handleColoringClick(event) {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
-    if (currentMode === 'sketch') {
-        const activeButton = document.querySelector('.challenge-button.active');
-        if (!activeButton) return;
-        
-        if (activeButton.innerHTML === 'Vertices') {
-            // Vertex creation code
-            const tooClose = vertices.some(vertex => {
-                const dx = vertex.x - x;
-                const dy = vertex.y - y;
-                return Math.sqrt(dx * dx + dy * dy) < 40;
-            });
 
-            if (!tooClose) {
-                vertices.push({
-                    x: x,
-                    y: y,
-                    color: null,
-                    adjacentVertices: []
-                });
-                drawGraph();
-            }
-        } else if (activeButton.innerHTML === 'Edges') {
-            // Edge creation code
-            const clickedVertex = vertices.findIndex(vertex => {
-                const dx = vertex.x - x;
-                const dy = vertex.y - y;
-                return Math.sqrt(dx * dx + dy * dy) < 15;
-            });
-
-            if (clickedVertex !== -1) {
-                if (selectedVertex === null) {
-                    selectedVertex = clickedVertex;
-                    drawGraph();
-                    ctx.beginPath();
-                    ctx.arc(vertices[selectedVertex].x, vertices[selectedVertex].y, 18, 0, 2 * Math.PI);
-                    ctx.strokeStyle = '#2196F3';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                } else {
-                    if (selectedVertex !== clickedVertex) {
-                        edges.push([selectedVertex, clickedVertex]);
-                        vertices[selectedVertex].adjacentVertices.push(clickedVertex);
-                        vertices[clickedVertex].adjacentVertices.push(selectedVertex);
-                    }
-                    selectedVertex = null;
-                    drawGraph();
-                }
-            }
-        }
-    }
-    
-    // Handle coloring for all modes
+    // Find clicked vertex
     const clickedVertex = vertices.findIndex(vertex => {
         const dx = vertex.x - x;
         const dy = vertex.y - y;
         return Math.sqrt(dx * dx + dy * dy) < 15;
     });
 
-    // Only color if we're not in sketch mode's Vertices or Edges state
-    if (currentMode !== 'sketch' || 
-        (currentMode === 'sketch' && 
-         document.querySelector('.challenge-button.active')?.innerHTML === 'Play')) {
-        
-        if (clickedVertex !== -1 && selectedColor) {
-            if (isValidColor(clickedVertex, selectedColor)) {
-                vertices[clickedVertex].color = selectedColor;
-                drawGraph();
-                updateColorCount();
+    if (clickedVertex !== -1 && selectedColor) {
+        if (isValidColor(clickedVertex, selectedColor)) {
+            vertices[clickedVertex].color = selectedColor;
+            drawGraph();
+            updateColorCount();
 
-                if (checkGraphColoring()) {
-                    const usedColors = new Set(vertices.map(v => v.color)).size;
-                    const minColors = greedyColoring();
+            if (checkGraphColoring()) {
+                const usedColors = new Set(vertices.map(v => v.color)).size;
+                const minColors = greedyColoring();
+                
+                if (usedColors < minColors) {
+                    // Player beat the algorithm!
+                    showSpecialCelebration();
                     showGameMessage(
-                        usedColors === minColors ? "🎉 Perfect Solution!" : "⭐ Graph Colored!",
-                        usedColors === minColors ? 
-                            `Minimum ${usedColors} colors used` : 
-                            `Used ${usedColors} colors - Try with ${minColors}?`,
-                        usedColors === minColors ? 'perfect' : 'success'
+                        "🌟 EXTRAORDINARY! 🌟",
+                        `You beat the algorithm! Only ${usedColors} colors used!`,
+                        'exceptional'
+                    );
+                } else if (usedColors === minColors) {
+                    completedChallenges.add(currentChallengeIndex);
+                    showGameMessage(
+                        "🎉 Perfect Solution!",
+                        `Minimum ${usedColors} colors used`,
+                        'perfect'
+                    );
+                } else {
+                    showGameMessage(
+                        "⭐ Graph Colored!",
+                        `Used ${usedColors} colors - Try with ${minColors}?`,
+                        'success'
                     );
                 }
+            }
+        } else {
+            showGameMessage("Invalid move! Adjacent vertices cannot have the same color.", "error");
+        }
+    }
+}
+
+canvas.addEventListener('click', (event) => {
+    if (currentMode !== 'sketch') {
+        handleColoringClick(event);
+        return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    const activeButton = document.querySelector('.challenge-button.active');
+    if (!activeButton) return;
+    
+    if (activeButton.innerHTML === 'Play') {
+        handleColoringClick(event);
+        return;
+    }
+
+    if (activeButton.innerHTML === 'Vertices') {
+        // Vertex creation
+        const tooClose = vertices.some(vertex => {
+            const dx = vertex.x - x;
+            const dy = vertex.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < 40;
+        });
+
+        if (!tooClose) {
+            vertices.push({
+                x: x,
+                y: y,
+                color: null,
+                adjacentVertices: []
+            });
+            drawGraph();
+        }
+    } else if (activeButton.innerHTML === 'Edges') {
+        // Edge creation
+        const clickedVertex = vertices.findIndex(vertex => {
+            const dx = vertex.x - x;
+            const dy = vertex.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < 15;
+        });
+
+        if (clickedVertex !== -1) {
+            if (selectedVertex === null) {
+                selectedVertex = clickedVertex;
+                drawGraph();
+                ctx.beginPath();
+                ctx.arc(vertices[selectedVertex].x, vertices[selectedVertex].y, 18, 0, 2 * Math.PI);
+                ctx.strokeStyle = '#2196F3';
+                ctx.lineWidth = 3;
+                ctx.stroke();
             } else {
-                showGameMessage("Invalid move! Adjacent vertices cannot have the same color.", "error");
+                if (selectedVertex !== clickedVertex) {
+                    edges.push([selectedVertex, clickedVertex]);
+                    vertices[selectedVertex].adjacentVertices.push(clickedVertex);
+                    vertices[clickedVertex].adjacentVertices.push(selectedVertex);
+                }
+                selectedVertex = null;
+                drawGraph();
             }
         }
+    } else if (activeButton.innerHTML === 'Delete') {
+        // Delete functionality
+        const clickedVertex = vertices.findIndex(vertex => {
+            const dx = vertex.x - x;
+            const dy = vertex.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < 15;
+        });
+
+        if (clickedVertex !== -1) {
+            // Remove all edges connected to this vertex
+            edges = edges.filter(([v1, v2]) => 
+                v1 !== clickedVertex && v2 !== clickedVertex);
+            
+            // Update adjacency lists
+            vertices.forEach(vertex => {
+                vertex.adjacentVertices = vertex.adjacentVertices.filter(v => 
+                    v !== clickedVertex);
+                vertex.adjacentVertices = vertex.adjacentVertices.map(v => 
+                    v > clickedVertex ? v - 1 : v);
+            });
+            
+            vertices.splice(clickedVertex, 1);
+            edges = edges.map(([v1, v2]) => [
+                v1 > clickedVertex ? v1 - 1 : v1,
+                v2 > clickedVertex ? v2 - 1 : v2
+            ]);
+            
+            drawGraph();
+            return;
+        }
+
+        // Edge deletion
+        const clickedEdge = edges.findIndex(([v1, v2]) => {
+            const x1 = vertices[v1].x;
+            const y1 = vertices[v1].y;
+            const x2 = vertices[v2].x;
+            const y2 = vertices[v2].y;
+            
+            const A = x - x1;
+            const B = y - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            
+            const dot = A * C + B * D;
+            const len_sq = C * C + D * D;
+            
+            let param = -1;
+            if (len_sq !== 0) param = dot / len_sq;
+            
+            let xx, yy;
+            
+            if (param < 0) {
+                xx = x1;
+                yy = y1;
+            } else if (param > 1) {
+                xx = x2;
+                yy = y2;
+            } else {
+                xx = x1 + param * C;
+                yy = y1 + param * D;
+            }
+            
+            const dx = x - xx;
+            const dy = y - yy;
+            return Math.sqrt(dx * dx + dy * dy) < 10;
+        });
+
+        if (clickedEdge !== -1) {
+            const [v1, v2] = edges[clickedEdge];
+            edges.splice(clickedEdge, 1);
+            vertices[v1].adjacentVertices = vertices[v1].adjacentVertices.filter(v => v !== v2);
+            vertices[v2].adjacentVertices = vertices[v2].adjacentVertices.filter(v => v !== v1);
+            drawGraph();
+        }
+    } else if (activeButton.innerHTML === 'Play') {
+        handleColoringClick(event);
     }
 });
 
@@ -588,21 +700,37 @@ document.getElementById('howToPlayBtn').addEventListener('click', function() {
 // Add these functions to your code
 
 function checkGraphColoring() {
-    // Check if all vertices are colored
-    const uncoloredVertices = vertices.filter(v => !v.color);
-    if (uncoloredVertices.length > 0) {
-        return false;
-    }
+    const allVerticesColored = vertices.every(vertex => vertex.color !== null);
+    const noAdjacentSameColor = edges.every(([v1, v2]) => 
+        vertices[v1].color !== vertices[v2].color
+    );
 
-    // Check if adjacent vertices have different colors
-    for (let i = 0; i < edges.length; i++) {
-        const [v1, v2] = edges[i];
-        if (vertices[v1].color === vertices[v2].color) {
-            return false;
+    if (allVerticesColored && noAdjacentSameColor) {
+        const usedColors = new Set(vertices.map(v => v.color)).size;
+        const minColors = greedyColoring();
+        
+        if (usedColors < minColors) {
+            showGameMessage(
+                "🌟 EXTRAORDINARY! 🌟",
+                `You beat the algorithm! Only ${usedColors} colors used!`,
+                'exceptional'
+            );
+        } else if (usedColors === minColors) {
+            showGameMessage(
+                "🎉 Perfect Solution!",
+                `Minimum ${usedColors} colors used`,
+                'perfect'
+            );
+        } else {
+            showGameMessage(
+                "⭐ Graph Colored!",
+                `Used ${usedColors} colors - Try with ${minColors}?`,
+                'success'
+            );
         }
+        return true;
     }
-
-    return true;
+    return false;
 }
 
 function greedyColoring() {
@@ -673,44 +801,16 @@ function showNotification(message, type = 'success') {
             if (messageContainer.contains(notification)) {
                 messageContainer.removeChild(notification);
             }
-        }, 300);
-    }, 5000);
+        }, 0);
+    }, 500000); // Increased to 5000ms (5 seconds)
 }
 
-// Add this new function for showing game messages
-function showGameMessage(title, message, type = 'success') {
-    console.log('Showing message:', title, message);
-    
-    let messageContainer = document.getElementById('game-message-container');
-    if (!messageContainer) {
-        messageContainer = document.createElement('div');
-        messageContainer.id = 'game-message-container';
-        document.getElementById('gameCanvas').parentElement.appendChild(messageContainer);
-    }
-
-    const notification = document.createElement('div');
-    notification.className = `game-message ${type}`;
-    
-    notification.innerHTML = `
-        <div class="message-box">
-            <div class="message-title">${title}</div>
-            <div class="message-content">${message}</div>
-        </div>
-    `;
-    
-    messageContainer.innerHTML = '';
-    messageContainer.appendChild(notification);
-    
-    // Force a reflow
-    notification.offsetHeight;
-    
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 500);
-    }, 3000);
+// Comment out or remove the function definition
+/*
+function showGameMessage(title, message, type) {
+    // This function is currently disabled
 }
+*/
 
 // Add these console logs to help debug
 resetButton.addEventListener('click', () => {
@@ -755,7 +855,7 @@ function showSketchControls() {
             btn.classList.remove('active'));
         verticesBtn.classList.add('active');
         selectedVertex = null;
-        sketchState = 'create';
+        sketchState = 'vertices';
     });
     
     // Edges button
@@ -767,7 +867,19 @@ function showSketchControls() {
             btn.classList.remove('active'));
         edgesBtn.classList.add('active');
         selectedVertex = null;
-        sketchState = 'create';
+        sketchState = 'edges';
+    });
+
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'challenge-button';
+    deleteBtn.innerHTML = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+        document.querySelectorAll('.challenge-button').forEach(btn => 
+            btn.classList.remove('active'));
+        deleteBtn.classList.add('active');
+        selectedVertex = null;
+        sketchState = 'delete';
     });
     
     // Play button
@@ -779,11 +891,12 @@ function showSketchControls() {
             btn.classList.remove('active'));
         playBtn.classList.add('active');
         selectedVertex = null;
-        sketchState = 'play';
+        canvas.style.cursor = 'pointer';
     });
     
     buttonRow.appendChild(verticesBtn);
     buttonRow.appendChild(edgesBtn);
+    buttonRow.appendChild(deleteBtn);
     buttonRow.appendChild(playBtn);
     rowsContainer.appendChild(buttonRow);
     container.appendChild(rowsContainer);
@@ -791,7 +904,63 @@ function showSketchControls() {
     const controls = document.getElementById('controls');
     controls.parentElement.insertBefore(container, controls);
     
-    verticesBtn.click(); // Start with Vertices mode active
+    verticesBtn.click();
+}
+
+// Add this function for the special celebration
+function showSpecialCelebration() {
+    // Create celebration overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'celebration-overlay';
+    document.body.appendChild(overlay);
+
+    // Add confetti effect
+    for (let i = 0; i < 150; i++) {
+        createConfetti(overlay);
+    }
+
+    // Remove overlay after animation
+    setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 1000);
+    }, 3000);
+}
+
+function createConfetti(overlay) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = Math.random() * 100 + 'vw';
+    confetti.style.animationDelay = Math.random() * 3 + 's';
+    confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 50%, 50%)`;
+    overlay.appendChild(confetti);
 }
 
 console.log('Script ended');
+
+function showGameMessage(title, message, type) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'game-message';
+    messageDiv.innerHTML = `
+        <h3>${title}</h3>
+        <p>${message}</p>
+    `;
+    
+    // Remove any existing message
+    const existingMessage = document.querySelector('.game-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Add to document body
+    document.body.appendChild(messageDiv);
+    
+    // Remove message after 1.5 seconds
+    setTimeout(() => {
+        messageDiv.classList.add('fade-out');
+        setTimeout(() => {
+            if (messageDiv.parentElement) {
+                messageDiv.remove();
+            }
+        }, 300); // 0.3 seconds fade
+    }, 1500); // 1.5 seconds display
+}
